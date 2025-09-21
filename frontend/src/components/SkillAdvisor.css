@@ -1,0 +1,80 @@
+.skill-advisor-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 16px 0;
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.skill-advisor-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.skill-advisor-card h4 {
+  margin: 0 0 16px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-align: center;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 12px;
+}
+
+.skill-advisor-card p {
+  margin: 12px 0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.skill-advisor-card strong {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.skill-advisor-card .skills-list {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  border-left: 4px solid #ffd700;
+}
+
+.skill-advisor-card a {
+  color: #ffd700;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  margin: 0 8px;
+}
+
+.skill-advisor-card a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.skill-advisor-card .resources {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .skill-advisor-card {
+    padding: 20px;
+    margin: 12px 0;
+  }
+  
+  .skill-advisor-card h4 {
+    font-size: 1.3rem;
+  }
+  
+  .skill-advisor-card p {
+    font-size: 0.9rem;
+  }
+}

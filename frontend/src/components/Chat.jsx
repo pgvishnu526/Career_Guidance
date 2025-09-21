@@ -1,185 +1,234 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import CareerCard from "./CareerCard";  // Correct path - same directory
-import "./Chat.css";  // Correct path - in styles folder
+import "./Chat.css";
+import CareerCard from "./CareerCard";
+import SkillAdvisor from "./SkillAdvisor";
 
-
-const API_URL = "http://localhost:8000/ask";
-
-function Chat() {
+export default function Chat() {
   const [query, setQuery] = useState("");
-  const [response, setResponse] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]);
+  const [result, setResult] = useState(null);
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      type: 'bot',
+      content: "Hello! I'm your Career AI assistant. I can help you explore career options, suggest skills to develop, and provide personalized career guidance. What would you like to know?",
+      timestamp: new Date()
+    }
+  ]);
+  const [isThinking, setIsThinking] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isThinking]);
 
   const handleAsk = async () => {
     if (!query.trim()) return;
-    
-    // Add user message to chat history
-    const userMessage = { type: "user", content: query };
-    setChatHistory(prev => [...prev, userMessage]);
-    
-    setIsLoading(true);
+
+    // Add user message to chat
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: query,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    const currentQuery = query;
+    setQuery("");
+    setIsThinking(true);
+
     try {
-      const res = await axios.post(API_URL, { query });
-      setResponse(res.data);
+      const response = await axios.post("http://localhost:8000/ask", { query: currentQuery });
+      setResult(response.data);
       
-      // Add AI response to chat history
-      const aiMessage = { 
-        type: "ai", 
-        content: res.data.suggestion,
-        matches: res.data.matches
+      // Add bot response to chat
+      const botMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: response.data.suggestion,
+        result: response.data, // Store full result for displaying cards
+        timestamp: new Date()
       };
-      setChatHistory(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error("Error fetching response:", error);
-      const errorMessage = { 
-        type: "ai", 
-        content: "Sorry, I'm having trouble connecting to the career database. Please try again later.",
-        isError: true
+      
+      setMessages(prev => [...prev, botMessage]);
+      setIsThinking(false);
+      
+    } catch (err) {
+      console.error(err);
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: "Sorry, I encountered an error while processing your request. Please try again.",
+        timestamp: new Date()
       };
-      setChatHistory(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-      setQuery("");
+      setMessages(prev => [...prev, errorMessage]);
+      setResult({ suggestion: "Error fetching response." });
+      setIsThinking(false);
     }
   };
 
+  const clearConversation = () => {
+    setMessages([
+      {
+        id: 1,
+        type: 'bot',
+        content: "Hello! I'm your Career AI assistant. I can help you explore career options, suggest skills to develop, and provide personalized career guidance. What would you like to know?",
+        timestamp: new Date()
+      }
+    ]);
+    setResult(null);
+  };
+
+  const suggestedQuestions = [
+    "What careers are good for creative people?",
+    "I'm interested in technology careers", 
+    "What business skills should I develop?",
+    "How do I change careers?",
+    "What are high-paying remote jobs?"
+  ];
+
+  const handleSuggestedQuestion = (question) => {
+    setQuery(question);
+  };
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
+    if (e.key === 'Enter') {
       handleAsk();
     }
   };
 
-  const clearChat = () => {
-    setChatHistory([]);
-    setResponse(null);
-  };
-
-  const sampleQuestions = [
-    "What careers are good for creative people?",
-    "I'm good with numbers, what jobs should I consider?",
-    "What are some high-demand tech careers?",
-    "I enjoy helping people, what careers match this?"
-  ];
-
-  const handleSampleQuestionClick = (question) => {
-    setQuery(question);
-  };
-
   return (
     <div className="chat-container">
+      {/* Header */}
       <div className="chat-header">
-        <h1>Career Explorer</h1>
-        <p>Discover careers that match your skills and interests</p>
-        {chatHistory.length > 0 && (
-          <button className="clear-chat-btn" onClick={clearChat}>
-            Clear Conversation
-          </button>
-        )}
+        <h2>Career Guidance & Skill Advisor</h2>
+        <p className="chat-subtitle">Ask me anything about careers, skills, and professional development!</p>
       </div>
 
-      <div className="chat-messages">
-        {chatHistory.length === 0 ? (
-          <div className="welcome-message">
-            <div className="welcome-icon">💼</div>
-            <h2>Hello! I'm your Career Assistant</h2>
-            <p>Tell me about your skills, interests, or career goals and I'll suggest matching professions.</p>
-            
-            <div className="sample-questions">
-              <h3>Try asking:</h3>
-              {sampleQuestions.map((question, i) => (
-                <div 
-                  key={i} 
-                  className="sample-question"
-                  onClick={() => handleSampleQuestionClick(question)}
-                >
-                  {question}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          chatHistory.map((message, i) => (
-            <div key={i} className={`message ${message.type}-message`}>
+      {/* Clear Conversation Button */}
+      {messages.length > 1 && (
+        <div className="clear-conversation">
+          <button onClick={clearConversation} className="clear-btn">
+            🗑️ Clear Conversation
+          </button>
+        </div>
+      )}
+
+      {/* Suggested Questions */}
+      {messages.length === 1 && (
+        <div className="suggested-questions">
+          {suggestedQuestions.map((question, index) => (
+            <button
+              key={index}
+              onClick={() => handleSuggestedQuestion(question)}
+              className="suggested-question"
+            >
+              {question}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Messages Container */}
+      <div className="messages-container">
+        <div className="messages-list">
+          {messages.map((message) => (
+            <div key={message.id} className={`message ${message.type}`}>
+              <div className="avatar">
+                {message.type === 'user' ? 'You' : 'AI'}
+              </div>
               <div className="message-content">
-                {message.type === "user" ? (
-                  <div className="user-bubble">
-                    <div className="avatar">You</div>
-                    <div className="text">{message.content}</div>
-                  </div>
-                ) : (
-                  <div className="ai-bubble">
-                    <div className="avatar">Career AI</div>
-                    <div className="text">
-                      {message.isError ? (
-                        <div className="error-message">{message.content}</div>
-                      ) : (
-                        <>
-                          <div className="suggestion">{message.content}</div>
-                          {message.matches && message.matches.length > 0 && (
-                            <>
-                              <h4>Matched Careers:</h4>
-                              <div className="career-matches">
-                                {message.matches.map((career, idx) => (
-                                  <CareerCard key={idx} career={career} />
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </>
-                      )}
+                <div className="message-text">
+                  {message.content.split('\n').map((line, i) => (
+                    <div key={i}>
+                      {line}
+                      {i < message.content.split('\n').length - 1 && <br />}
                     </div>
+                  ))}
+                </div>
+                <div className="message-time">
+                  {formatTime(message.timestamp)}
+                </div>
+
+                {/* Display Career Cards and Skill Advisor for bot messages with results */}
+                {message.type === 'bot' && message.result && message.result.matches && (
+                  <div className="message-results">
+                    <div className="top-matches">
+                      <h4>🎯 Top Career Matches:</h4>
+                      <div className="career-cards-container">
+                        {message.result.matches.map((career, idx) => (
+                          <CareerCard key={idx} career={career} />
+                        ))}
+                      </div>
+                    </div>
+
+                    {message.result.matches[0] && (
+                      <div className="skill-advisor">
+                        <h4>📚 Skill Development:</h4>
+                        <SkillAdvisor career={message.result.matches[0]} />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
-          ))
-        )}
-        
-        {isLoading && (
-          <div className="message ai-message">
-            <div className="message-content">
-              <div className="ai-bubble">
-                <div className="avatar">Career AI</div>
-                <div className="text">
-                  <div className="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
+          ))}
+
+          {/* Thinking Animation */}
+          {isThinking && (
+            <div className="thinking">
+              <div className="avatar">AI</div>
+              <div className="thinking-content">
+                <span className="thinking-text">Thinking</span>
+                <div className="thinking-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      <div className="chat-input-container">
-        <div className="input-wrapper">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask about careers (e.g., What careers are good for creative people?)"
-            className="chat-input"
-            disabled={isLoading}
-          />
-          <button 
-            onClick={handleAsk} 
-            className="send-button"
-            disabled={isLoading || !query.trim()}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-              <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-            </svg>
-          </button>
-        </div>
+      {/* Input Area */}
+      <div className="input-container">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Ask about a career, skills, or professional advice..."
+          disabled={isThinking}
+        />
+        <button onClick={handleAsk} disabled={isThinking || !query.trim()}>
+          {isThinking ? (
+            <>
+              <div className="loading-dots">
+                <div></div>
+                <div></div>
+                <div></div>
+              </div>
+              Thinking...
+            </>
+          ) : (
+            <>
+              ➤ Ask
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
 }
-
-export default Chat;
